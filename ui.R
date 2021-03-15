@@ -29,12 +29,12 @@ shinyUI(fluidPage(
                          
                          tabPanel("Plot",
                                   fluidRow(column(12,
-                                                  withSpinner(
+                                                  shinycssloaders::withSpinner(
                                                     highchartOutput(outputId = "plot", height = "600px")
                                                   ),))),
                          tabPanel("Table",
                                   fluidRow(column(12,
-                                                  withSpinner(
+                                                  shinycssloaders::withSpinner(
                                                     DT::dataTableOutput(outputId = "table", height = "600px")
                                                   ),)))
                          
