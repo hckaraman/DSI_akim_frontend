@@ -10,27 +10,28 @@ library(RSQLite)
 
 options(digits = 2)
 
+data_file <- './data/Data.db'
+conn <- dbConnect(RSQLite::SQLite(), data_file)
+station_file <- './data/stations.geojson'
+river_file <- './data/river.geojson'
+query = "SELECT * FROM Discharge d where d.Station = '03-18';"
+data = dbGetQuery(conn, query)
+data <- rapply(object = data, f = round, classes = "numeric", how = "replace", digits = 6) 
+stations <-  rgdal::readOGR(station_file)
+rivers <-  rgdal::readOGR(river_file)
 
 shinyServer(function(input, output, session){
   
   
   reactive_objects=reactiveValues()
   reactive_objects$Station <- '03-18'
-  data_file <- './data/Data.db'
-  conn <- dbConnect(RSQLite::SQLite(), data_file)
-  station_file <- './data/stations.geojson'
-  river_file <- './data/river.geojson'
-  
-  
-  query = "SELECT * FROM Discharge d where d.Station = '03-18';"
-  data = dbGetQuery(conn, query)
-  data <- rapply(object = data, f = round, classes = "numeric", how = "replace", digits = 6) 
+
+
   
   # df <- data[which(data$Station == "1201"),]
   # df <- rapply(object = df, f = round, classes = "numeric", how = "replace", digits = 6) 
   
-  stations <-  rgdal::readOGR(station_file)
-  rivers <-  rgdal::readOGR(river_file)
+
   
   map = leaflet::createLeafletMap(session, 'map')
   
