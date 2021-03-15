@@ -1,0 +1,1 @@
+helpers.installPackages(c("shiny","leaflet","tidyverse","vroom","shinycssloaders","highcharter","xts","rgdal","DT"))
