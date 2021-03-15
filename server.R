@@ -6,6 +6,7 @@ library(shinycssloaders)
 library(highcharter)
 library(stringr)
 library(xts)
+library(RSQLite)
 
 options(digits = 2)
 
@@ -15,14 +16,18 @@ shinyServer(function(input, output, session){
   
   reactive_objects=reactiveValues()
   reactive_objects$Station <- '03-18'
-  load("data/data.RData")
-  
+  data_file <- './data/Data.db'
+  conn <- dbConnect(RSQLite::SQLite(), data_file)
   station_file <- './data/stations.geojson'
   river_file <- './data/river.geojson'
   
   
-  df <- data[which(data$Station == "1201"),]
-  df <- rapply(object = df, f = round, classes = "numeric", how = "replace", digits = 6) 
+  query = "SELECT * FROM Discharge d where d.Station = '03-18';"
+  data = dbGetQuery(conn, query)
+  data <- rapply(object = data, f = round, classes = "numeric", how = "replace", digits = 6) 
+  
+  # df <- data[which(data$Station == "1201"),]
+  # df <- rapply(object = df, f = round, classes = "numeric", how = "replace", digits = 6) 
   
   stations <-  rgdal::readOGR(station_file)
   rivers <-  rgdal::readOGR(river_file)
@@ -74,7 +79,9 @@ shinyServer(function(input, output, session){
     output$plot <- renderHighchart({
       
       station <- reactive_objects$Station
-      df <- data[which(data$Station == station),]
+      # df <- data[which(data$Station == station),]
+      query = str_interp("SELECT * FROM Discharge d where d.Station = '${station}';")
+      df = dbGetQuery(conn, query)
       
       df$Dischage <- as.numeric(df$Dischage)
       df <- rapply(object = df, f = round, classes = "numeric", how = "replace", digits = 6) 
@@ -99,10 +106,12 @@ shinyServer(function(input, output, session){
     output$table <- DT::renderDataTable({
       
       station <- reactive_objects$Station
-      df <- data[which(data$Station == station),]
+      # df <- data[which(data$Station == station),]
+      query = str_interp("SELECT * FROM Discharge d where d.Station = '${station}';")
+      df = dbGetQuery(conn, query)
       df$Dischage <- as.numeric(df$Dischage)
       df <- select(df,"Date","Dischage")
-      row.names(df) <- NULL
+      # row.names(df) <- NULL
       DT::datatable(df,  extensions = 'Buttons',options = list(dom = 'Blfrtip',
                                                                buttons = c('copy', 'csv', 'excel', 'pdf', 'print'),
                                                                lengthMenu = list(c(10,25,50,-1),

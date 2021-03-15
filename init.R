@@ -1,1 +1,1 @@
-helpers.installPackages(c("shiny","leaflet","tidyverse","vroom","shinycssloaders","highcharter","xts","rgdal","DT"))
+helpers.installPackages(c("shiny","leaflet","tidyverse","vroom","shinycssloaders","highcharter","xts","rgdal","DT","RSQLite","stringr"))
