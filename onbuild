@@ -9,6 +9,6 @@ apt-get update -q
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 
-cd /app/data
-curl https://transfer.sh/yyy8V/data.tar.gz -o data.tar.gz
-tar -xvf data.tar.gz
+#cd /app/data
+#curl https://transfer.sh/yyy8V/data.tar.gz -o data.tar.gz
+#tar -xvf data.tar.gz
