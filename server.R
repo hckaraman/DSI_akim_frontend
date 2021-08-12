@@ -7,15 +7,33 @@ library(highcharter)
 library(stringr)
 library(xts)
 library(RSQLite)
+library(RPostgreSQL)
+library(DBI)
+library(yaml)
+
+drv = dbDriver("PostgreSQL")
+
+server_data <- yaml.load_file("./data/server.yaml")
+
+con = dbConnect(
+  RPostgres::Postgres(),
+  dbname = server_data$database,
+  host = server_data$host,
+  port = server_data$port,
+  user = server_data$user,
+  password = server_data$password
+)
 
 options(digits = 2)
 
-data_file <- './data/Data.db'
-conn <- dbConnect(RSQLite::SQLite(), data_file)
 station_file <- './data/stations.geojson'
 river_file <- './data/river.geojson'
-query = "SELECT * FROM Discharge d where d.Station = '03-18';"
-data = dbGetQuery(conn, query)
+
+
+
+
+query = "select * from discharge where station ='03-13'"
+data = dbGetQuery(con, query)
 data <- rapply(object = data, f = round, classes = "numeric", how = "replace", digits = 6) 
 stations <-  rgdal::readOGR(station_file)
 rivers <-  rgdal::readOGR(river_file)
@@ -25,6 +43,16 @@ shinyServer(function(input, output, session){
   
   reactive_objects=reactiveValues()
   reactive_objects$Station <- '03-18'
+  # station <- reactive_objects$Station
+  # df <- data[which(data$Station == station),]
+  station <- reactive_objects$Station
+  query = str_interp("SELECT * FROM discharge where station = '${station}';")
+  df = dbGetQuery(con, query)
+  
+  df$Dischage <- as.numeric(df$dischage)
+  reactive_objects$df <- rapply(object = df, f = round, classes = "numeric", how = "replace", digits = 6) 
+  reactive_objects$df <- df
+  reactive_objects$dfx = xts(df$Dischage, order.by=as.Date(df$Date))
 
 
   
@@ -79,18 +107,11 @@ shinyServer(function(input, output, session){
     
     output$plot <- renderHighchart({
       
-      station <- reactive_objects$Station
-      # df <- data[which(data$Station == station),]
-      query = str_interp("SELECT * FROM Discharge d where d.Station = '${station}';")
-      df = dbGetQuery(conn, query)
       
-      df$Dischage <- as.numeric(df$Dischage)
-      df <- rapply(object = df, f = round, classes = "numeric", how = "replace", digits = 6) 
-      dfx = xts(df$Dischage, order.by=as.Date(df$Date))
       
       highchart(type = "stock") %>% 
-        hc_title(text = paste("Observed discharge at station : ",station)) %>%
-        hc_add_series(dfx, yAxis = 0,name = "Observed") %>%
+        hc_title(text = paste("Observed discharge at station : ",reactive_objects$station)) %>%
+        hc_add_series(reactive_objects$dfx, yAxis = 0,name = "Observed") %>%
         hc_add_yAxis(nid = 1L, title = list(text = "Discharge m3/s"), relative = 4) %>%
         hc_xAxis(
           type = 'datetime') %>%
@@ -106,11 +127,12 @@ shinyServer(function(input, output, session){
     
     output$table <- DT::renderDataTable({
       
-      station <- reactive_objects$Station
-      # df <- data[which(data$Station == station),]
-      query = str_interp("SELECT * FROM Discharge d where d.Station = '${station}';")
-      df = dbGetQuery(conn, query)
-      df$Dischage <- as.numeric(df$Dischage)
+      # station <- reactive_objects$Station
+      # # df <- data[which(data$Station == station),]
+      # query = str_interp("SELECT * FROM discharge where station = '${station}';")
+      # df = dbGetQuery(con, query)
+      # df$Dischage <- as.numeric(df$dischage)
+      df <- reactive_objects$df 
       df <- select(df,"Date","Dischage")
       # row.names(df) <- NULL
       DT::datatable(df,  extensions = 'Buttons',options = list(dom = 'Blfrtip',
@@ -127,15 +149,15 @@ shinyServer(function(input, output, session){
     
   })
   
-  observe({
-    click <- input$map_marker_click
-    if (is.null(click)){return()}
-    p <- input$map_marker_click$id
-    # siteid=site_click$id
-    # reactive_objects$sel_mlid=siteid
-    reactive_objects$Station=p
-    print(reactive_objects$Station)
-  })
+  # observe({
+  #   click <- input$map_marker_click
+  #   if (is.null(click)){return()}
+  #   p <- input$map_marker_click$id
+  #   # siteid=site_click$id
+  #   # reactive_objects$sel_mlid=siteid
+  #   reactive_objects$Station=p
+  #   print(reactive_objects$Station)
+  # })
   
 })
 

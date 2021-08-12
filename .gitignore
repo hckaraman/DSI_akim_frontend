@@ -1,2 +1,8 @@
 
 data/Data.db
+
+container/image.tar.gz
+
+data/dump.sql
+
+data/server.yaml
